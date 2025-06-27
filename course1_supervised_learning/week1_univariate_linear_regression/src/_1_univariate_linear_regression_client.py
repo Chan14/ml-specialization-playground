@@ -54,7 +54,6 @@ loss_by_lr = {
 }
 
 # Plot the loss curve for all learning rates
-# plot_loss_curves_for_lrs(loss_by_lr)
 plot_loss_curves_for_lrs_with_subplot(loss_by_lr)
 
 print("Final losses by learning rate:")
