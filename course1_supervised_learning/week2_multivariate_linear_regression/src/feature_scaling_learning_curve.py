@@ -22,8 +22,8 @@ np.set_printoptions(precision=2)
 # | 1947            | 3                   | 2                | 17           | 509.8                  |
 # | ...             | ...                 | ...              | ...          | ...                    |
 
-data_dir = Path(__file__).resolve().parent.parent / "data"
-file_path = Path(data_dir) / "houses.txt"
+
+file_path = Path(__file__).resolve().parent / "data" / "houses.txt"
 
 
 def load_house_data():

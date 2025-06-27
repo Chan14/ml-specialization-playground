@@ -15,8 +15,7 @@ dlc = dict(
     dlpurple="#7030A0",
 )
 
-data_dir = Path(__file__).resolve().parent.parent / "data"
-file_path = Path(data_dir) / "houses.txt"
+file_path = Path(__file__).resolve().parent / "data" / "houses.txt"
 
 
 def load_house_data():

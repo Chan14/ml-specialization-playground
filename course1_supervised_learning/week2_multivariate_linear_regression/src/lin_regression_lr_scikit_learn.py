@@ -58,8 +58,7 @@ print(f"Prediction for 1200 sqft house: ${linear_model.predict(X_test)[0]:.2f}")
 # this is nearly instantaneous. The closed-form solution work well on smaller data sets such as these but can be computationally
 # demanding on larger data sets.
 # >The closed-form solution does not require normalization.
-data_dir = Path(__file__).resolve().parent.parent / "data"
-file_path = Path(data_dir) / "houses.txt"
+file_path = Path(__file__).resolve().parent / "data" / "houses.txt"
 
 
 def load_house_data():
