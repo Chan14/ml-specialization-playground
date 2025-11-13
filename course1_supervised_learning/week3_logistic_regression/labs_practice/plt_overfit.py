@@ -436,10 +436,10 @@ class overfit_example:
             self.X_mapped
         )
         if not self.regularize or self.lambda_ == 0:
-            lr = LogisticRegression(penalty=None, max_iter=10000)
+            lr = LogisticRegression(penalty=None, max_iter=10000)  # line fixed
         else:
             C = 1 / self.lambda_
-            lr = LogisticRegression(C=C, max_iter=10000, penalty="l2")
+            lr = LogisticRegression(C=C, max_iter=10000, penalty="l2")  # line fixed
 
         lr.fit(self.X_mapped_scaled, self.y)
         # print(lr.score(self.X_mapped_scaled, self.y))
