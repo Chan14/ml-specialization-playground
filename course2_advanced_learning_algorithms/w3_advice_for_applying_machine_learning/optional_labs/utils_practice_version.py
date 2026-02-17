@@ -7,10 +7,11 @@ import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 
-from sklearn.linear_model import LinearRegression, Ridge
+from sklearn.linear_model import Ridge
 from sklearn.preprocessing import StandardScaler, PolynomialFeatures
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
+from sklearn.utils import shuffle
 
 
 def plot_dataset(x, y, title):
@@ -163,3 +164,225 @@ def build_models2(random_state=None):
     model_list = [model_1, model_2, model_3]
 
     return model_list
+
+
+def prepare_dataset(filename):
+    data = np.loadtxt(filename, delimiter=",")
+    x, y = data[:, :-1], data[:, -1]
+    x_train, x_, y_train, y_ = train_test_split(x, y, test_size=0.40, random_state=80)
+    x_cv, x_test, y_cv, y_test = train_test_split(
+        x_, y_, test_size=0.50, random_state=80
+    )
+    return x_train, y_train, x_cv, y_cv, x_test, y_test
+
+
+def train_plot_poly(model, x_train, y_train, x_cv, y_cv, max_degree=10, baseline=None):
+    train_mses = []
+    cv_mses = []
+    degrees = range(1, max_degree + 1)
+
+    for degree in degrees:
+        poly = PolynomialFeatures(degree, include_bias=False)
+        X_train_mapped = poly.fit_transform(x_train)
+
+        scaler_poly = StandardScaler()
+        X_train_mapped_scaled = scaler_poly.fit_transform(X_train_mapped)
+
+        model.fit(X_train_mapped_scaled, y_train)
+
+        yhat = model.predict(X_train_mapped_scaled)
+        train_mse = mean_squared_error(y_train, yhat) / 2
+        train_mses.append(train_mse)
+
+        X_cv_mapped = poly.transform(x_cv)
+        X_cv_mapped_scaled = scaler_poly.transform(X_cv_mapped)
+        yhat = model.predict(X_cv_mapped_scaled)
+        cv_mse = mean_squared_error(y_cv, yhat) / 2
+        cv_mses.append(cv_mse)
+
+    degrees = [str(d) for d in degrees]
+    plt.plot(degrees, train_mses, marker="o", c="r", label="training MSEs")
+    plt.plot(degrees, cv_mses, marker="o", c="b", label="CV MSEs")
+    plt.plot(
+        degrees, np.repeat(baseline, len(degrees)), linestyle="--", label="baseline"
+    )
+
+    plt.title("degree of polynomial vs. train and CV MSEs")
+    plt.xticks(degrees)
+    plt.xlabel("degree")
+    plt.ylabel("MSE")
+    plt.legend()
+    plt.show()
+
+
+def train_plot_reg_params(
+    reg_params, x_train, y_train, x_cv, y_cv, degree=1, baseline=None
+):
+    train_mses = []
+    cv_mses = []
+    models = []
+    scalers = []
+
+    for reg_param in reg_params:
+        poly = PolynomialFeatures(degree, include_bias=False)
+        X_train_mapped = poly.fit_transform(x_train)
+
+        scaler_poly = StandardScaler()
+        X_train_mapped_scaled = scaler_poly.fit_transform(X_train_mapped)
+        scalers.append(scaler_poly)
+
+        model = Ridge(alpha=reg_param)
+        model.fit(X_train_mapped_scaled, y_train)
+        models.append(model)
+
+        yhat = model.predict(X_train_mapped_scaled)
+        train_mse = mean_squared_error(y_train, yhat) / 2
+        train_mses.append(train_mse)
+
+        X_cv_mapped = poly.transform(x_cv)
+        X_cv_mapped_scaled = scaler_poly.transform(X_cv_mapped)
+        yhat = model.predict(X_cv_mapped_scaled)
+        cv_mse = mean_squared_error(y_cv, yhat) / 2
+        cv_mses.append(cv_mse)
+
+    reg_params = [str(x) for x in reg_params]
+    plt.plot(reg_params, train_mses, marker="o", c="r", label="training MSEs")
+    plt.plot(reg_params, cv_mses, marker="o", c="b", label="CV MSEs")
+    plt.plot(
+        reg_params,
+        np.repeat(baseline, len(reg_params)),
+        linestyle="--",
+        label="baseline",
+    )
+    plt.title("lambda vs. train and CV MSEs")
+    plt.xlabel("lambda")
+    plt.ylabel("MSE")
+    plt.legend()
+    plt.show()
+
+
+def train_plot_diff_datasets(model, files, max_degree, baseline=None):
+
+    for f in files:
+
+        x_train, y_train, x_cv, y_cv, x_test, y_test = prepare_dataset(f["filename"])
+
+        train_mses = []
+        cv_mses = []
+        degrees = range(1, max_degree + 1)
+        degrees_str = [str(d) for d in degrees]
+
+        for degree in degrees:
+            poly = PolynomialFeatures(degree, include_bias=False)
+            X_train_mapped = poly.fit_transform(x_train)
+
+            scaler_poly = StandardScaler()
+            X_train_mapped_scaled = scaler_poly.fit_transform(X_train_mapped)
+
+            model.fit(X_train_mapped_scaled, y_train)
+
+            yhat = model.predict(X_train_mapped_scaled)
+            train_mse = mean_squared_error(y_train, yhat) / 2
+            train_mses.append(train_mse)
+
+            X_cv_mapped = poly.transform(x_cv)
+            X_cv_mapped_scaled = scaler_poly.transform(X_cv_mapped)
+            yhat = model.predict(X_cv_mapped_scaled)
+            cv_mse = mean_squared_error(y_cv, yhat) / 2
+            cv_mses.append(cv_mse)
+
+        plt.plot(
+            degrees_str,
+            train_mses,
+            marker="o",
+            c="r",
+            linestyle=f["linestyle"],
+            label=f"{f['label']} training MSEs",
+        )
+        plt.plot(
+            degrees_str,
+            cv_mses,
+            marker="o",
+            c="b",
+            linestyle=f["linestyle"],
+            label=f"{f['label']} CV MSEs",
+        )
+    plt.plot(
+        degrees_str,
+        np.repeat(baseline, len(degrees_str)),
+        linestyle="--",
+        label="baseline",
+    )
+
+    plt.title("degree of polynomial vs. train and CV MSEs")
+    plt.xticks(degrees_str)
+    plt.xlabel("degree")
+    plt.ylabel("MSE")
+    plt.legend()
+    plt.show()
+
+
+def train_plot_learning_curve(
+    model, x_train, y_train, x_cv, y_cv, degree=1, baseline=None
+):
+
+    # 1. Shuffle the entire training and CV sets ONCE at the start
+    # This ensures that [:num_samples] gives us a random, representative slice.
+    x_train, y_train = shuffle(x_train, y_train, random_state=42)
+    x_cv, y_cv = shuffle(x_cv, y_cv, random_state=42)
+
+    train_mses = []
+    cv_mses = []
+    num_samples_train_and_cv = []
+    percents = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+
+    for percent in percents:
+        num_samples_train = round(len(x_train) * (percent / 100.0))
+        num_samples_cv = round(len(x_cv) * (percent / 100.0))
+        num_samples_train_and_cv.append(num_samples_train + num_samples_cv)
+
+        x_train_sub, y_train_sub = (
+            x_train[:num_samples_train],
+            y_train[:num_samples_train],
+        )
+        x_cv_sub, y_cv_sub = x_cv[:num_samples_cv], y_cv[:num_samples_cv]
+
+        # Add polynomial features to the training set
+        poly = PolynomialFeatures(degree, include_bias=False)
+        X_train_mapped = poly.fit_transform(x_train_sub)
+
+        # Scale the features
+        scaler_poly = StandardScaler()
+        X_train_mapped_scaled = scaler_poly.fit_transform(X_train_mapped)
+
+        # Fit the model
+        model.fit(X_train_mapped_scaled, y_train_sub)
+
+        # Compute the training MSE
+        yhat = model.predict(X_train_mapped_scaled)
+        train_mse = mean_squared_error(y_train_sub, yhat) / 2
+        train_mses.append(train_mse)
+
+        # Compute the CV MSE
+        X_cv_mapped = poly.transform(x_cv_sub)
+        X_cv_mapped_scaled = scaler_poly.transform(X_cv_mapped)
+        yhat = model.predict(X_cv_mapped_scaled)
+        cv_mse = mean_squared_error(y_cv_sub, yhat) / 2
+        cv_mses.append(cv_mse)
+
+    # Plot the results
+    plt.plot(
+        num_samples_train_and_cv, train_mses, marker="o", c="r", label="training MSEs"
+    )
+    plt.plot(num_samples_train_and_cv, cv_mses, marker="o", c="b", label="CV MSEs")
+    plt.plot(
+        num_samples_train_and_cv,
+        np.repeat(baseline, len(percents)),
+        linestyle="--",
+        label="baseline",
+    )
+    plt.title("number of examples vs. train and CV MSEs")
+    plt.xlabel("total number of training and cv examples")
+    plt.ylabel("MSE")
+    plt.legend()
+    plt.show()
